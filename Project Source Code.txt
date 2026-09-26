@@ -1,0 +1,137 @@
+"""
+Simple Expense Tracker (menu version)
+-------------------------------------
+Just run this file. No commands or arguments to type.
+It shows a menu and you pick a number.
+Expenses are saved in expenses.csv in the same folder.
+"""
+
+import csv
+import os
+from datetime import date, datetime
+
+FILE_NAME = os.path.join(os.path.dirname(os.path.abspath(__file__)), "expenses.csv")
+
+
+def load_expenses():
+    expenses = []
+    if os.path.exists(FILE_NAME):
+        with open(FILE_NAME, newline="", encoding="utf-8") as f:
+            for row in csv.reader(f):
+                if len(row) == 4:
+                    expenses.append([row[0], float(row[1]), row[2], row[3]])
+    return expenses
+
+
+def save_expenses(expenses):
+    with open(FILE_NAME, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        for e in expenses:
+            writer.writerow(e)
+
+
+def add_expense(expenses):
+    try:
+        amount = float(input("Amount: "))
+    except ValueError:
+        print("Please enter a number, like 250 or 99.50.")
+        return
+    if amount <= 0:
+        print("Amount must be more than 0.")
+        return
+
+    category = input("Category (food, travel, rent...): ").strip().lower() or "other"
+    note = input("Note (optional): ").strip()
+    when = input("Date DD-MM-YYYY (press Enter for today): ").strip()
+
+    if when == "":
+        when = date.today().isoformat()
+    else:
+        try:
+            datetime.strptime(when, "%Y-%m-%d")
+        except ValueError:
+            print("Wrong date format. Use DD/MM/YY, like 2026-09-24.")
+            return
+
+    expenses.append([when, amount, category, note])
+    save_expenses(expenses)
+    print("Expense added!")
+
+
+def view_expenses(expenses):
+    if not expenses:
+        print("No expenses yet.")
+        return
+    print()
+    print(f"{'No.':<5}{'Date':<12}{'Amount':>10}  {'Category':<12}Note")
+    print("-" * 55)
+    total = 0
+    for i, e in enumerate(expenses, start=1):
+        print(f"{i:<5}{e[0]:<12}{e[1]:>10.2f}  {e[2]:<12}{e[3]}")
+        total += e[1]
+    print("-" * 55)
+    print(f"{'Total':<17}{total:>10.2f}")
+
+
+def show_summary(expenses):
+    if not expenses:
+        print("No expenses yet.")
+        return
+    totals = {}
+    for e in expenses:
+        totals[e[2]] = totals.get(e[2], 0) + e[1]
+    grand = sum(totals.values())
+    print()
+    print("Spending by category")
+    print("-" * 40)
+    for cat, amt in sorted(totals.items(), key=lambda x: x[1], reverse=True):
+        print(f"{cat:<12}{amt:>10.2f}  {amt / grand * 100:>5.1f}%")
+    print("-" * 40)
+    print(f"{'Total':<12}{grand:>10.2f}")
+
+
+def delete_expense(expenses):
+    view_expenses(expenses)
+    if not expenses:
+        return
+    try:
+        number = int(input("\nEnter the No. to delete: "))
+    except ValueError:
+        print("Please enter a number.")
+        return
+    if 1 <= number <= len(expenses):
+        removed = expenses.pop(number - 1)
+        save_expenses(expenses)
+        print(f"Deleted: {removed[1]:.2f} on {removed[2]}")
+    else:
+        print("That number is not in the list.")
+
+
+def main():
+    expenses = load_expenses()
+    while True:
+        print("\n===== EXPENSE TRACKER =====")
+        print("1. Add expense")
+        print("2. View all expenses")
+        print("3. Summary by category")
+        print("4. Delete an expense")
+        print("5. Exit")
+        choice = input("Choose 1-5: ").strip()
+
+        if choice == "1":
+            add_expense(expenses)
+        elif choice == "2":
+            view_expenses(expenses)
+        elif choice == "3":
+            show_summary(expenses)
+        elif choice == "4":
+            delete_expense(expenses)
+        elif choice == "5":
+            print("Goodbye!")
+            break
+        else:
+            print("Please type a number from 1 to 5.")
+
+
+if __name__ == "__main__":
+    main()
